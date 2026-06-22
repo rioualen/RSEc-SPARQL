@@ -1,0 +1,12 @@
+services:
+  sparql-endpoint:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount the ./data directory so you can add/edit RDF files without rebuilding
+      - ./data:/app/data:ro
+    environment:
+      RDF_DIR: /app/data
+      FLASK_DEBUG: "0"   # Set to "1" for auto-reload during development
+    restart: unless-stopped

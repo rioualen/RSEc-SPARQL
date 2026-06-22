@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPARQL Endpoint</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e4f0;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    .badge {
+      background: rgba(108,140,255,.15);
+      color: #6c8cff;
+      border: 1px solid rgba(108,140,255,.3);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .triple-count { margin-left: auto; color: #8b8fa8; font-size: 0.8rem; }
+    .triple-count span { color: #34d399; font-weight: 600; }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid #2d3148;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .card-header h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #8b8fa8;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .card-body { padding: 20px; }
+
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; }
+    .example-btn {
+      background: rgba(108,140,255,.1);
+      border: 1px solid rgba(108,140,255,.25);
+      color: #6c8cff;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .example-btn:hover { background: rgba(108,140,255,.22); }
+
+    #query {
+      width: 100%;
+      min-height: 200px;
+      background: #0c0e16;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 14px 16px;
+      color: #e2e4f0;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 0.85rem;
+      line-height: 1.65;
+      resize: vertical;
+      outline: none;
+      display: block;
+      margin-bottom: 14px;
+    }
+    #query:focus { border-color: #6c8cff; }
+
+    .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: none;
+      border-radius: 7px;
+      padding: 9px 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary { background: #6c8cff; color: #fff; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-secondary { background: #2d3148; color: #e2e4f0; }
+    .btn-secondary:hover { opacity: .78; }
+
+    #spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .time-label { margin-left: auto; color: #8b8fa8; font-size: 0.8rem; }
+
+    /* Results card — always visible */
+    #results-card { display: block; }
+
+    #results-placeholder {
+      color: #8b8fa8;
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 0.9rem;
+    }
+
+    .results-meta { display: flex; align-items: center; gap: 14px; font-size: 0.82rem; color: #8b8fa8; }
+    .type-tag {
+      background: rgba(167,139,250,.12);
+      color: #a78bfa;
+      border: 1px solid rgba(167,139,250,.25);
+      border-radius: 4px;
+      padding: 1px 8px;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+    .row-count { color: #34d399; font-weight: 600; }
+
+    #export-csv {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid #2d3148;
+      color: #8b8fa8;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    #export-csv:hover { border-color: #34d399; color: #34d399; }
+
+    .table-wrap { overflow-x: auto; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    th {
+      background: rgba(108,140,255,.08);
+      color: #6c8cff;
+      text-align: left;
+      padding: 9px 14px;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid #2d3148;
+      white-space: nowrap;
+    }
+    td {
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(45,49,72,.6);
+      word-break: break-all;
+      color: #e2e4f0;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 0.8rem;
+      max-width: 420px;
+    }
+    tr:hover td { background: rgba(108,140,255,.04); }
+    td a { color: #6c8cff; text-decoration: none; }
+    td a:hover { text-decoration: underline; }
+
+    #raw-output {
+      background: #0c0e16;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #e2e4f0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-x: auto;
+    }
+
+    #ask-result { font-size: 1.4rem; font-weight: 700; padding: 20px 0; }
+    #ask-result.true  { color: #34d399; }
+    #ask-result.false { color: #f87171; }
+
+    #error-box {
+      background: rgba(248,113,113,.1);
+      border: 1px solid rgba(248,113,113,.3);
+      color: #f87171;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <circle cx="14" cy="14" r="13" stroke="#6c8cff" stroke-width="1.5"/>
+    <path d="M8 14h12M14 8l6 6-6 6" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <h1>SPARQL Endpoint</h1>
+  <span class="badge">RDFLib · Flask</span>
+  <span class="triple-count">Loaded <span id="tc">{{ triple_count }}</span> triples</span>
+</header>
+
+<main>
+
+  <div class="card">
+    <div class="card-header"><h2>Example Queries</h2></div>
+    <div class="card-body">
+      <div class="examples" id="examples"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>SPARQL Query</h2></div>
+    <div class="card-body">
+      <textarea id="query" spellcheck="false" placeholder="Write your SPARQL query here…"></textarea>
+      <div class="controls">
+        <button class="btn btn-primary" onclick="runQuery()">
+          <div id="spinner"></div>
+          <span id="run-label">▶ Run Query</span>
+        </button>
+        <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+        <button class="btn btn-secondary" onclick="reloadGraph()">↻ Reload RDF</button>
+        <span class="time-label" id="time-label"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="results-card">
+    <div class="card-header">
+      <h2>Results</h2>
+      <div class="results-meta">
+        <span class="type-tag" id="res-type"></span>
+        <span class="row-count" id="res-count"></span>
+        <button id="export-csv" onclick="exportCSV()"></button>
+      </div>
+    </div>
+    <div class="card-body" id="results-body">
+      <div id="results-placeholder">Run a query to see results</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const EXAMPLES = [
+  { label: "All triples (limit 50)", query: `SELECT ?subject ?predicate ?object\nWHERE { ?subject ?predicate ?object }\nLIMIT 50` },
+  { label: "All classes", query: `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT DISTINCT ?class\nWHERE { ?s rdf:type ?class }\nORDER BY ?class` },
+  { label: "All properties", query: `SELECT DISTINCT ?property\nWHERE { ?s ?property ?o }\nORDER BY ?property` },
+  { label: "Labels & comments", query: `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subject ?label ?comment\nWHERE {\n  ?subject rdfs:label ?label .\n  OPTIONAL { ?subject rdfs:comment ?comment }\n}\nORDER BY ?label` },
+  { label: "CONSTRUCT subgraph", query: `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nCONSTRUCT { ?s rdf:type ?type }\nWHERE { ?s rdf:type ?type }\nLIMIT 20` },
+  { label: "ASK — has any triple?", query: `ASK { ?s ?p ?o }` }
+];
+
+document.getElementById("examples").innerHTML = EXAMPLES.map((e, i) =>
+  `<button class="example-btn" onclick="setExample(${i})">${e.label}</button>`
+).join("");
+
+function setExample(i) {
+  document.getElementById("query").value = EXAMPLES[i].query;
+}
+
+let lastData = null;
+
+function setResults(html) {
+  document.getElementById("results-body").innerHTML = html;
+}
+
+async function runQuery() {
+  const query = document.getElementById("query").value.trim();
+  if (!query) return;
+
+  document.getElementById("spinner").style.display = "block";
+  document.getElementById("run-label").textContent = "Running…";
+  document.getElementById("res-type").textContent = "";
+  document.getElementById("res-count").textContent = "";
+  document.getElementById("export-csv").textContent = "";
+  document.getElementById("time-label").textContent = "";
+  setResults('<div style="color:#8b8fa8;text-align:center;padding:40px">Running query…</div>');
+
+  const t0 = performance.now();
+  try {
+    const res = await fetch("/sparql", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "query=" + encodeURIComponent(query)
+    });
+    const data = await res.json();
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(3);
+    document.getElementById("time-label").textContent = elapsed + "s";
+    lastData = data;
+
+    if (data.error) {
+      document.getElementById("res-type").textContent = "ERROR";
+      setResults(`<div class="error-box">${escHtml(data.error)}</div>`);
+      return;
+    }
+
+    if (data.type === "SELECT") {
+      document.getElementById("res-type").textContent = "SELECT";
+      document.getElementById("res-count").textContent = data.results.length + " row" + (data.results.length !== 1 ? "s" : "");
+      document.getElementById("export-csv").textContent = data.results.length ? "⬇ Export CSV" : "";
+
+      if (!data.results.length) {
+        setResults('<div style="color:#8b8fa8;text-align:center;padding:40px">No results</div>');
+        return;
+      }
+
+      const thead = "<tr>" + data.vars.map(v => `<th>${escHtml(v)}</th>`).join("") + "</tr>";
+      const tbody = data.results.map(row =>
+        "<tr>" + data.vars.map(v => {
+          const val = row[v] ?? "";
+          const isUri = val.startsWith("http://") || val.startsWith("https://");
+          return `<td>${isUri ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>` : escHtml(val)}</td>`;
+        }).join("") + "</tr>"
+      ).join("");
+
+      setResults(`<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`);
+
+    } else if (data.type === "ASK") {
+      document.getElementById("res-type").textContent = "ASK";
+      const cls = data.result ? "true" : "false";
+      const label = data.result ? "✔ TRUE" : "✘ FALSE";
+      setResults(`<div id="ask-result" class="${cls}">${label}</div>`);
+
+    } else {
+      document.getElementById("res-type").textContent = data.type;
+      setResults(`<pre id="raw-output">${escHtml(data.graph)}</pre>`);
+    }
+
+  } catch (e) {
+    setResults(`<div class="error-box">Network error: ${escHtml(e.message)}</div>`);
+  } finally {
+    document.getElementById("spinner").style.display = "none";
+    document.getElementById("run-label").textContent = "▶ Run Query";
+  }
+}
+
+function clearAll() {
+  document.getElementById("query").value = "";
+  document.getElementById("res-type").textContent = "";
+  document.getElementById("res-count").textContent = "";
+  document.getElementById("export-csv").textContent = "";
+  document.getElementById("time-label").textContent = "";
+  lastData = null;
+  setResults('<div id="results-placeholder">Run a query to see results</div>');
+}
+
+async function reloadGraph() {
+  const btn = event.target;
+  btn.textContent = "Reloading…";
+  btn.disabled = true;
+  try {
+    const res = await fetch("/reload", { method: "POST" });
+    const data = await res.json();
+    document.getElementById("tc").textContent = data.triples;
+  } catch (e) {
+    alert("Reload failed: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "↻ Reload RDF";
+  }
+}
+
+function exportCSV() {
+  if (!lastData || lastData.type !== "SELECT") return;
+  const { vars, results } = lastData;
+  const rows = [vars, ...results.map(r => vars.map(v => r[v] ?? ""))];
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = Object.assign(document.createElement("a"), {
+    href: "data:text/csv;charset=utf-8," + encodeURIComponent(csv),
+    download: "sparql-results.csv"
+  });
+  a.click();
+}
+
+document.getElementById("query").addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runQuery(); }
+});
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+</script>
+</body>
+</html>
