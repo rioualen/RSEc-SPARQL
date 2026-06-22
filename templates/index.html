@@ -273,9 +273,9 @@ const EXAMPLES = [
   { label: "All triples (limit 50)", query: `SELECT ?subject ?predicate ?object\nWHERE { ?subject ?predicate ?object }\nLIMIT 50` },
   { label: "All classes", query: `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT DISTINCT ?class\nWHERE { ?s rdf:type ?class }\nORDER BY ?class` },
   { label: "All properties", query: `SELECT DISTINCT ?property\nWHERE { ?s ?property ?o }\nORDER BY ?property` },
-  { label: "Labels & comments", query: `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?subject ?label ?comment\nWHERE {\n  ?subject rdfs:label ?label .\n  OPTIONAL { ?subject rdfs:comment ?comment }\n}\nORDER BY ?label` },
-  { label: "CONSTRUCT subgraph", query: `PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nCONSTRUCT { ?s rdf:type ?type }\nWHERE { ?s rdf:type ?type }\nLIMIT 20` },
-  { label: "ASK — has any triple?", query: `ASK { ?s ?p ?o }` }
+  { label: "Total SoftwareApplication entries", query: `PREFIX ns1: <http://schema.org/>\nPREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nSELECT (COUNT(?s) as ?count)\nWHERE { ?s rdf:type ns1:SoftwareApplication . }` },
+  { label: "SoftwareApplication & bio.tools IDs", query: `PREFIX biotools: <https://bio.tools/>\nPREFIX ns1: <http://schema.org/>\nPREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nSELECT ?application ?biotools_ID\nWHERE { ?application ns1:identifier ?biotools_ID . }\nORDER BY ?biotools_ID` },
+  { label: "Entries per bio.tools ID", query: `PREFIX biotools: <https://bio.tools/>\nPREFIX ns1: <http://schema.org/>\nPREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\nSELECT ?biotools_ID (COUNT (?application) AS ?count)\nWHERE { ?application ns1:identifier ?biotools_ID . }\nGROUP BY ?biotools_ID\nORDER BY DESC(?count)\nLIMIT 10` }
 ];
 
 document.getElementById("examples").innerHTML = EXAMPLES.map((e, i) =>
